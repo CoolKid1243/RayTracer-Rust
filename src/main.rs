@@ -1,33 +1,27 @@
 mod vec3;
 mod color;
 mod ray;
-mod hittable;
+mod hit_record;
 mod common;
+mod hittable_list;
+mod hittable;
+mod sphere;
 
 use std::{io::{self, Write}};
+use std::sync::Arc;
 use color::{Color, write_color};
 use vec3::{Vec3, Point3};
 use ray::Ray;
+use hit_record::HitRecord;
+use hittable::Hittable;
+use hittable_list::HittableList;
+use sphere::Sphere;
 
-fn hit_sphere(center: Point3, radius: f64, r: &Ray) -> f64 {
-    let oc = center - r.origin();
-    let a = r.direction().length_squared();
-    let h = Vec3::dot(&r.direction(), &oc);
-    let c = oc.length_squared() - radius*radius;
-    let discriminant = h*h - a*c;
-    
-    if discriminant < 0.0 {
-        return -1.0;
-    } else {
-        return (h - discriminant.sqrt()) / a;
-    }
-}
+pub fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
+    let mut rec = HitRecord::new();
 
-pub fn ray_color(r: &Ray) -> Color {
-    let t = hit_sphere(Point3::new(0.0, 0.0, -1.0), 0.5, r);
-    if t > 0.0 {
-        let n = Vec3::unit_vector(&(r.at(t) - Vec3::new(0.0, 0.0, -1.0)));
-        return 0.5 * Color::new(n.x() + 1.0, n.y() + 1.0, n.z() + 1.0);
+    if world.hit(r, 0.001, f64::INFINITY, &mut rec) {
+        return 0.5 * (rec.normal + Color::new(1.0, 1.0, 1.0));
     }
 
     let unit_direction = Vec3::unit_vector(&r.direction());
@@ -36,13 +30,18 @@ pub fn ray_color(r: &Ray) -> Color {
 }
 
 fn main() {
+    // World
+    let mut world = HittableList::new();
+    world.add(Arc::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
+    world.add(Arc::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
+
     // Image
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
+
+    // Calculate image height and make sure it's atleast 1
     let mut image_height = (image_width as f64 / aspect_ratio) as i32;
-    if image_height < 1 {
-        image_height = 1;
-    }
+    if image_height < 1 { image_height = 1; }
 
     // Camera
     let focal_length = 1.0;
@@ -50,11 +49,15 @@ fn main() {
     let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
     let camera_center = Point3::new(0.0, 0.0, 0.0);
 
+    // Calculate the vectors across the horizontal and down the vertical viewport edges
     let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
     let viewport_v = Vec3::new(0.0, -viewport_height, 0.0);
+
+    // Calculate the horizontal and vertical delta vectors from pixel to pixel
     let pixel_delta_u = viewport_u / image_width as f64;
     let pixel_delta_v = viewport_v / image_height as f64;
 
+    // Calculate the location of the upper left pixel
     let viewport_upper_left = camera_center
         - Vec3::new(0.0, 0.0, focal_length)
         - viewport_u / 2.0
@@ -75,7 +78,7 @@ fn main() {
             let ray_direction = pixel_center - camera_center;
             let r = Ray::new(camera_center, ray_direction);
 
-            let pixel_color = ray_color(&r);
+            let pixel_color = ray_color(&r, &world);
             write_color(&pixel_color);
         }
     }

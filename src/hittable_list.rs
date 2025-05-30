@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::ray::Ray;
-use crate::hittable::{Hittable, HitRecord};
+use crate::hit_record::HitRecord;
+use crate::hittable::Hittable;
 
 pub struct HittableList {
     pub objects: Vec<Arc<dyn Hittable>>,

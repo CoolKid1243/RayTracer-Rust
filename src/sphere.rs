@@ -1,6 +1,7 @@
 use crate::vec3::{Vec3, Point3};
 use crate::ray::Ray;
-use crate::hittable::{HitRecord, Hittable};
+use crate::hittable::Hittable;
+use crate::hit_record::HitRecord;
 
 pub struct Sphere {
     pub center: Point3,
@@ -20,7 +21,7 @@ impl Hittable for Sphere {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let oc = self.center - r.origin();
         let a = r.direction().length_squared();
-        let h = Vec3::dot(r.direction(), oc);
+        let h = &Vec3::dot(&r.direction(), &oc);
         let c = oc.length_squared() - self.radius * self.radius;
 
         let discriminant = h * h - a * c;
@@ -41,7 +42,7 @@ impl Hittable for Sphere {
 
         rec.t = root;
         rec.p = r.at(rec.t);
-        Vec3::outward_normal = (rec.p - center) / radius;
+        let outward_normal = (rec.p - self.center) / self.radius;
         rec.set_face_normal(r, outward_normal);
 
         true
