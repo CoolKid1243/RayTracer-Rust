@@ -1,23 +1,16 @@
-mod vec3;
-mod color;
-mod ray;
-mod hit_record;
-mod common;
-mod hittable_list;
-mod hittable;
-mod sphere;
-mod interval;
+mod ray_tracer;
 
-use std::{io::{self, Write}};
+use std::io::{self, Write};
 use std::sync::Arc;
-use color::{Color, write_color};
-use vec3::{Vec3, Point3};
-use ray::Ray;
-use hit_record::HitRecord;
-use hittable::Hittable;
-use hittable_list::HittableList;
-use sphere::Sphere;
-use interval::Interval;
+
+use ray_tracer::vec3::{Vec3, Point3};
+use ray_tracer::ray::Ray;
+use ray_tracer::hit_record::HitRecord;
+use ray_tracer::hittable::Hittable;
+use ray_tracer::hittable_list::HittableList;
+use ray_tracer::sphere::Sphere;
+use ray_tracer::color::{Color, write_color};
+use ray_tracer::interval::Interval;
 
 pub fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
     let mut rec = HitRecord::new();

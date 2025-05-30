@@ -1,5 +1,5 @@
-use crate::vec3::{Vec3, Point3};
-use crate::ray::Ray;
+use crate::ray_tracer::vec3::{Vec3, Point3};
+use crate::ray_tracer::ray::Ray;
 
 #[derive(Clone)]
 pub struct HitRecord {

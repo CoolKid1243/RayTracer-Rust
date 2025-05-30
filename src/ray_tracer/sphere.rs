@@ -1,8 +1,8 @@
-use crate::vec3::{Vec3, Point3};
-use crate::ray::Ray;
-use crate::hittable::Hittable;
-use crate::hit_record::HitRecord;
-use crate::interval::Interval;
+use crate::ray_tracer::vec3::{Vec3, Point3};
+use crate::ray_tracer::ray::Ray;
+use crate::ray_tracer::hittable::Hittable;
+use crate::ray_tracer::hit_record::HitRecord;
+use crate::ray_tracer::interval::Interval;
 
 pub struct Sphere {
     pub center: Point3,
