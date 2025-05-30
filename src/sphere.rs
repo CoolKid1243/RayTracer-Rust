@@ -1,0 +1,49 @@
+use crate::vec3::{Vec3, Point3};
+use crate::ray::Ray;
+use crate::hittable::{HitRecord, Hittable};
+
+pub struct Sphere {
+    pub center: Point3,
+    pub radius: f64,
+}
+
+impl Sphere {
+    pub fn new(center: Point3, radius: f64) -> Self {
+        Self {
+            center,
+            radius: radius.max(0.0),
+        }
+    }
+}
+
+impl Hittable for Sphere {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let oc = self.center - r.origin();
+        let a = r.direction().length_squared();
+        let h = Vec3::dot(r.direction(), oc);
+        let c = oc.length_squared() - self.radius * self.radius;
+
+        let discriminant = h * h - a * c;
+        if discriminant < 0.0 {
+            return false;
+        }
+
+        let sqrtd = discriminant.sqrt();
+
+        // Find the nearest root that lies in the acceptable range
+        let mut root = (h - sqrtd) / a;
+        if root <= t_min || t_max <= root {
+            root = (h + sqrtd) / a;
+            if root <= t_min || t_max <= root {
+                return false;
+            }
+        }
+
+        rec.t = root;
+        rec.p = r.at(rec.t);
+        Vec3::outward_normal = (rec.p - center) / radius;
+        rec.set_face_normal(r, outward_normal);
+
+        true
+    }
+}
