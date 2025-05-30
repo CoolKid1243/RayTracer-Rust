@@ -6,6 +6,7 @@ mod common;
 mod hittable_list;
 mod hittable;
 mod sphere;
+mod interval;
 
 use std::{io::{self, Write}};
 use std::sync::Arc;
@@ -16,11 +17,12 @@ use hit_record::HitRecord;
 use hittable::Hittable;
 use hittable_list::HittableList;
 use sphere::Sphere;
+use interval::Interval;
 
 pub fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
     let mut rec = HitRecord::new();
 
-    if world.hit(r, 0.001, f64::INFINITY, &mut rec) {
+    if world.hit(r, Interval::new(0.001, f64::INFINITY), &mut rec) {
         return 0.5 * (rec.normal + Color::new(1.0, 1.0, 1.0));
     }
 

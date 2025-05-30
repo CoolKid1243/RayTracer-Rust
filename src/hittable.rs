@@ -1,6 +1,7 @@
 use crate::ray::Ray;
 use crate::hit_record::HitRecord;
+use crate::interval::Interval;
 
-pub trait Hittable {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
+pub trait Hittable: Send + Sync {
+    fn hit(&self, r: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool;
 }
