@@ -1,4 +1,5 @@
 mod ray_tracer;
+mod graphics_pipeline;
 
 use std::io::{self, Write};
 use std::sync::Arc;
@@ -11,6 +12,7 @@ use ray_tracer::hittable_list::HittableList;
 use ray_tracer::sphere::Sphere;
 use ray_tracer::color::{Color, write_color};
 use ray_tracer::interval::Interval;
+use graphics_pipeline::create_window::run;
 
 pub fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
     let mut rec = HitRecord::new();
@@ -25,6 +27,8 @@ pub fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
 }
 
 fn main() {
+    pollster::block_on(run());  // Application run
+
     // World
     let mut world = HittableList::new();
     world.add(Arc::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
