@@ -1,4 +1,5 @@
 use crate::graphics_pipeline::application::State;
+use crate::ray_tracer::application::Run;
 
 use winit:: {
     event::*,
@@ -17,6 +18,7 @@ pub async fn run() {
         .unwrap();
 
     let mut state = State::new(&window).await;
+    let run = Run::new();
     let mut surface_configured = false;
 
     event_loop.run(move |event, control_flow| {
@@ -49,6 +51,7 @@ pub async fn run() {
                                 return;
                             }
 
+                            run.update();
                             state.update();
                             match state.render() {
                                 Ok(_) => {}
@@ -73,6 +76,6 @@ pub async fn run() {
             }
             _ => {}
         }
-    })
-    .unwrap();
+        state.run();
+    }).unwrap();
 }

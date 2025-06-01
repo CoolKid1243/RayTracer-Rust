@@ -147,8 +147,12 @@ impl<'a> State<'a> {
         false
     }
 
+    pub fn run(&mut self) {
+        // This code gets run once when the project starts
+    }
+
     pub fn update(&mut self) {
-        // Any code that needs to be updated is put here
+        // This code gets ran every frame
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

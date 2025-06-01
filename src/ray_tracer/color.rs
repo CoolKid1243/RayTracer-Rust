@@ -15,5 +15,5 @@ pub fn write_color(color: &Color) {
     let b_byte = (255.999 * b) as u8;
 
     // Print the color values in PPM format
-    println!("{} {} {}", r_byte, g_byte, b_byte);
+    //println!("{} {} {}", r_byte, g_byte, b_byte);
 }
