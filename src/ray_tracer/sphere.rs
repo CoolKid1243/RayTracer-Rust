@@ -1,51 +1,41 @@
-use crate::ray_tracer::vec3::{Vec3, Point3};
-use crate::ray_tracer::ray::Ray;
 use crate::ray_tracer::hittable::Hittable;
+use crate::ray_tracer::ray::Ray;
 use crate::ray_tracer::hit_record::HitRecord;
 use crate::ray_tracer::interval::Interval;
+use crate::ray_tracer::vec3::{Vec3, Point3};
 
 pub struct Sphere {
-    pub center: Point3,
-    pub radius: f64,
+    center: Point3,
+    radius: f64,
 }
 
 impl Sphere {
     pub fn new(center: Point3, radius: f64) -> Self {
-        Self {
-            center,
-            radius: radius.max(0.0),
-        }
+        Sphere { center, radius }
     }
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool {
-        let oc = self.center - r.origin();
-        let a = r.direction().length_squared();
-        let h = Vec3::dot(&r.direction(), &oc);
-        let c = oc.length_squared() - self.radius * self.radius;
-
-        let discriminant = h * h - a * c;
+    fn hit(&self, r: &Ray, t_range: Interval, rec: &mut HitRecord) -> bool {
+        let oc = r.origin() - self.center;
+        let a = r.direction().length().powi(2);
+        let half_b = oc.x() * r.direction().x() + oc.y() * r.direction().y() + oc.z() * r.direction().z();
+        let c = oc.length().powi(2) - self.radius * self.radius;
+        let discriminant = half_b * half_b - a * c;
         if discriminant < 0.0 {
             return false;
         }
-
         let sqrtd = discriminant.sqrt();
-
-        // Find the nearest root that lies in the acceptable range
-        let mut root = (h - sqrtd) / a;
-        if !ray_t.surrounds(root) {
-            root = (h + sqrtd) / a;
-            if !ray_t.surrounds(root) {
+        let mut root = (-half_b - sqrtd) / a;
+        if root < t_range.min || root > t_range.max {
+            root = (-half_b + sqrtd) / a;
+            if root < t_range.min || root > t_range.max {
                 return false;
             }
         }
-
         rec.t = root;
         rec.p = r.at(rec.t);
-        let outward_normal = (rec.p - self.center) / self.radius;
-        rec.set_face_normal(r, outward_normal);
-
+        rec.normal = (rec.p - self.center) / self.radius;
         true
     }
 }

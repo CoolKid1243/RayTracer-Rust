@@ -1,7 +1,6 @@
 use crate::graphics_pipeline::application::State;
 use crate::ray_tracer::application::RayTracerApp;
-
-use winit:: {
+use winit::{
     event::*,
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
@@ -10,64 +9,53 @@ use winit:: {
 
 pub async fn run() {
     env_logger::init();
-
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
         .with_title("Real time ray tracer")
         .build(&event_loop)
         .unwrap();
-
-    let mut state = State::new(&window).await; 
-    state.run();
+    let mut state = State::new(&window).await;
     let ray_tracer = RayTracerApp::new();
     let mut surface_configured = false;
 
-    event_loop.run(move |event, control_flow| {
+    state.run();
+    let _ = event_loop.run(move |event, control_flow| {
         match event {
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            }
-
-            if window_id == state.window().id() => {
+            Event::WindowEvent { ref event, window_id } if window_id == state.window().id() => {
                 if !state.input(event) {
                     match event {
-                        WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
+                        WindowEvent::CloseRequested
+                        | WindowEvent::KeyboardInput {
                             event:
                                 KeyEvent {
                                     state: ElementState::Pressed,
-                                    physical_key: PhysicalKey::Code(KeyCode::Escape), ..
-                                }, ..
+                                    physical_key: PhysicalKey::Code(KeyCode::Escape),
+                                    ..
+                                },
+                            ..
                         } => control_flow.exit(),
-
                         WindowEvent::Resized(physical_size) => {
                             state.resize(*physical_size);
                             surface_configured = true;
                         }
-
                         WindowEvent::RedrawRequested => {
                             state.window().request_redraw();
-
                             if !surface_configured {
                                 return;
                             }
-
-                            ray_tracer.update();
                             state.update();
+                            state.updateImage(&ray_tracer);
                             match state.render() {
                                 Ok(_) => {}
-                                // Reconfigure the surface if it's lost or outdated
-                                Err(
-                                    wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated,
-                                ) => state.resize(state.size),
-                                // If the system is out of memory we quit
+                                Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                                    state.resize(state.size)
+                                }
                                 Err(wgpu::SurfaceError::OutOfMemory | wgpu::SurfaceError::Other) => {
                                     log::error!("OutOfMemory");
                                     control_flow.exit();
                                 }
-                                // We're ignoring timeouts and just printing a warning instead
                                 Err(wgpu::SurfaceError::Timeout) => {
-                                    log::warn!("Surface timeout")
+                                    log::warn!("Surface timeout");
                                 }
                             }
                         }
@@ -77,5 +65,5 @@ pub async fn run() {
             }
             _ => {}
         }
-    }).unwrap();
+    });
 }
