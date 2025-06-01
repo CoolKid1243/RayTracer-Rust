@@ -1,5 +1,5 @@
 use crate::graphics_pipeline::application::State;
-use crate::ray_tracer::application::Run;
+use crate::ray_tracer::application::RayTracerApp;
 
 use winit:: {
     event::*,
@@ -17,8 +17,9 @@ pub async fn run() {
         .build(&event_loop)
         .unwrap();
 
-    let mut state = State::new(&window).await;
-    let run = Run::new();
+    let mut state = State::new(&window).await; 
+    state.run();
+    let ray_tracer = RayTracerApp::new();
     let mut surface_configured = false;
 
     event_loop.run(move |event, control_flow| {
@@ -51,7 +52,7 @@ pub async fn run() {
                                 return;
                             }
 
-                            run.update();
+                            ray_tracer.update();
                             state.update();
                             match state.render() {
                                 Ok(_) => {}
@@ -76,6 +77,5 @@ pub async fn run() {
             }
             _ => {}
         }
-        state.run();
     }).unwrap();
 }

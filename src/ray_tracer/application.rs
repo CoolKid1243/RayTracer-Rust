@@ -22,7 +22,7 @@ pub fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
     (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
 }
 
-pub struct Run {
+pub struct RayTracerApp {
     image_width: i32,
     image_height: i32,
     pixel_delta_u: Vec3,
@@ -32,9 +32,9 @@ pub struct Run {
     world: HittableList,
 }
 
-impl Run {
+impl RayTracerApp {
     pub fn new() -> Self {
-        println!("Run");
+        println!("Run: RayTracer app");
 
         // World
         let mut world = HittableList::new();

@@ -149,6 +149,7 @@ impl<'a> State<'a> {
 
     pub fn run(&mut self) {
         // This code gets run once when the project starts
+        println!("Run: Application/State app");
     }
 
     pub fn update(&mut self) {
