@@ -1,4 +1,5 @@
 use winit::window::Window;
+use crate::ray_tracer::application::RayTracerApp;
 
 pub struct State<'a> {
     pub surface: wgpu::Surface<'a>,
@@ -13,7 +14,7 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    pub async fn new(window: &'a Window) -> State<'a> {
+    pub async fn new(window: &'a Window, raytracer: &RayTracerApp) -> State<'a> {
         let size = window.inner_size();
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
@@ -63,11 +64,11 @@ impl<'a> State<'a> {
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shader.wgsl").into()),
         });
 
-        // Create CPU‐writeable texture (400×225 RGBA8)
+        // Create CPU‐writeable texture
         let ray_texture = device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
-                width: 400,
-                height: 225,
+                width: raytracer.image_width(),
+                height: raytracer.image_height(),
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,

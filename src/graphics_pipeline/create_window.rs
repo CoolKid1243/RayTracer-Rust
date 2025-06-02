@@ -14,8 +14,8 @@ pub async fn run() {
         .with_title("Real time ray tracer")
         .build(&event_loop)
         .unwrap();
-    let mut state = State::new(&window).await;
-    let ray_tracer = RayTracerApp::new();
+    let raytracer = RayTracerApp::new();
+    let mut state = State::new(&window, &raytracer).await;
     let mut surface_configured = false;
 
     state.run();
@@ -44,7 +44,7 @@ pub async fn run() {
                                 return;
                             }
                             state.update();
-                            state.update_image(&ray_tracer);
+                            state.update_image(&raytracer);
                             match state.render() {
                                 Ok(_) => {}
                                 Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
