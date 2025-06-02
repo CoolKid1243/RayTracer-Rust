@@ -44,7 +44,7 @@ pub async fn run() {
                                 return;
                             }
                             state.update();
-                            state.updateImage(&ray_tracer);
+                            state.update_image(&ray_tracer);
                             match state.render() {
                                 Ok(_) => {}
                                 Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {

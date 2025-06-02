@@ -2,7 +2,7 @@ use crate::ray_tracer::hittable::Hittable;
 use crate::ray_tracer::ray::Ray;
 use crate::ray_tracer::hit_record::HitRecord;
 use crate::ray_tracer::interval::Interval;
-use crate::ray_tracer::vec3::{Vec3, Point3};
+use crate::ray_tracer::vec3::Point3;
 
 pub struct Sphere {
     center: Point3,

@@ -9,8 +9,6 @@ pub struct State<'a> {
     pub window: &'a Window,
     pub render_pipeline: wgpu::RenderPipeline,
     pub ray_texture: wgpu::Texture,
-    pub ray_texture_view: wgpu::TextureView,
-    pub ray_sampler: wgpu::Sampler,
     pub bind_group: wgpu::BindGroup,
 }
 
@@ -24,7 +22,7 @@ impl<'a> State<'a> {
             backends: wgpu::Backends::VULKAN,
             ..Default::default()
         });
-        let surface = unsafe { instance.create_surface(window) }.unwrap();
+        let surface = { instance.create_surface(window) }.unwrap();
         let adapter = instance
             .enumerate_adapters(wgpu::Backends::all())
             .into_iter()
@@ -178,8 +176,6 @@ impl<'a> State<'a> {
             window,
             render_pipeline,
             ray_texture,
-            ray_texture_view,
-            ray_sampler,
             bind_group,
         }
     }
@@ -209,19 +205,19 @@ impl<'a> State<'a> {
         // This code gets ran every frame
     }
 
-    pub fn updateImage(&mut self, raytracer: &crate::ray_tracer::application::RayTracerApp) {
+    pub fn update_image(&mut self, raytracer: &crate::ray_tracer::application::RayTracerApp) {
         let pixels = raytracer.render_rgba();
         let width = raytracer.image_width();
         let height = raytracer.image_height();
         self.queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.ray_texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
             &pixels,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some((width * 4).into()),
                 rows_per_image: Some(height.into()),

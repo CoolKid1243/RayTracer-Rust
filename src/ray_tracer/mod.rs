@@ -8,3 +8,4 @@ pub mod hittable;
 pub mod sphere;
 pub mod interval;
 pub mod application;
+pub mod camera;

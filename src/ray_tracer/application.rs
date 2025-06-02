@@ -1,12 +1,11 @@
 use std::sync::Arc;
-use std::io::{self, Write};
+use std::io::Write;
 
 use crate::ray_tracer::vec3::{Vec3, Point3, Color};
 use crate::ray_tracer::ray::Ray;
 use crate::ray_tracer::hittable_list::HittableList;
 use crate::ray_tracer::sphere::Sphere;
 use crate::ray_tracer::hit_record::HitRecord;
-use crate::ray_tracer::hittable::Hittable;
 use crate::ray_tracer::interval::Interval;
 
 fn ray_color(r: &Ray, world: &HittableList) -> Color {
