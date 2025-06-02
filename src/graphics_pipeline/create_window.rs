@@ -1,5 +1,6 @@
 use crate::graphics_pipeline::application::State;
 use crate::ray_tracer::application::RayTracerApp;
+use winit::dpi::LogicalSize;
 use winit::{
     event::*,
     event_loop::EventLoop,
@@ -12,6 +13,7 @@ pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
         .with_title("Real time ray tracer")
+        .with_inner_size(LogicalSize::new(800.0, 450.0))
         .build(&event_loop)
         .unwrap();
     let raytracer = RayTracerApp::new();
