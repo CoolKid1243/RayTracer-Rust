@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::io::Write;
 
+//use crate::ray_tracer::color::write_color;
 use crate::ray_tracer::vec3::{Vec3, Point3, Color};
 use crate::ray_tracer::ray::Ray;
 use crate::ray_tracer::hittable_list::HittableList;
@@ -15,7 +16,7 @@ fn ray_color(r: &Ray, world: &HittableList) -> Color {
     }
     let unit_direction = Vec3::unit_vector(&r.direction());
     let a = 0.5 * (unit_direction.y() + 1.0);
-    Color::new(1.0, 1.0, 1.0) * (1.0 - a) + Color::new(0.5, 0.7, 1.0) * a
+    Color::new(1.0, 1.0, 1.0) * (1.0 - a) + Color::new(0.5, 0.7, 1.0) * a // Background color (fade from white to light blue)
 }
 
 pub struct Camera {
@@ -93,6 +94,7 @@ impl Camera {
                 buffer[idx + 1] = g_u8;
                 buffer[idx + 2] = b_u8;
                 buffer[idx + 3] = 255;
+                //write_color(&pixel_color);
             }
             
             eprint!("\rScanlines remaining: {}", self.image_height - 1 - j);
