@@ -1,5 +1,5 @@
 use crate::graphics_pipeline::application::State;
-use crate::ray_tracer::application::RayTracerApp;
+use crate::ray_tracer::camera::Camera;
 use winit::dpi::LogicalSize;
 use winit::{
     event::*,
@@ -13,10 +13,10 @@ pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
         .with_title("Real time ray tracer")
-        .with_inner_size(LogicalSize::new(800.0, 450.0))
+        .with_inner_size(LogicalSize::new(1280.0, 720.0))
         .build(&event_loop)
         .unwrap();
-    let raytracer = RayTracerApp::new();
+    let raytracer = Camera::new();
     let mut state = State::new(&window, &raytracer).await;
     let mut surface_configured = false;
 

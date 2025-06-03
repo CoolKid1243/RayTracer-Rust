@@ -1,5 +1,5 @@
 use winit::window::Window;
-use crate::ray_tracer::application::RayTracerApp;
+use crate::ray_tracer::camera::Camera;
 
 pub struct State<'a> {
     pub surface: wgpu::Surface<'a>,
@@ -14,7 +14,8 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    pub async fn new(window: &'a Window, raytracer: &RayTracerApp) -> State<'a> {
+    pub async fn new(window: &'a Window, raytracer: &Camera) -> State<'a> {
+
         let size = window.inner_size();
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
@@ -206,7 +207,7 @@ impl<'a> State<'a> {
         // This code gets ran every frame
     }
 
-    pub fn update_image(&mut self, raytracer: &crate::ray_tracer::application::RayTracerApp) {
+    pub fn update_image(&mut self, raytracer: &crate::ray_tracer::camera::Camera) {
         let pixels = raytracer.render_rgba();
         let width = raytracer.image_width();
         let height = raytracer.image_height();
