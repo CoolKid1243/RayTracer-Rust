@@ -15,7 +15,6 @@ pub struct State<'a> {
 
 impl<'a> State<'a> {
     pub async fn new(window: &'a Window, raytracer: &Camera) -> State<'a> {
-
         let size = window.inner_size();
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
