@@ -16,7 +16,7 @@ pub async fn run() {
         .with_inner_size(LogicalSize::new(1280.0, 720.0))
         .build(&event_loop)
         .unwrap();
-    let raytracer = Camera::new();
+    let raytracer = Camera::new(400, 1);
     let mut state = State::new(&window, &raytracer).await;
     let mut surface_configured = false;
 

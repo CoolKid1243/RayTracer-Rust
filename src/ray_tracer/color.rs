@@ -1,9 +1,15 @@
 use crate::ray_tracer::vec3::Color;
+use crate::ray_tracer::interval::Interval;
 
 pub fn write_color(c: &Color) {
-    let ir = (c.x().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
-    let ig = (c.y().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
-    let ib = (c.z().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
-    let ia = 255;
-    println!("r: {:3}, g: {:3}, b: {:3}, a: {}", ir, ig, ib, ia);
+    let intensity = Interval::new(0.0, 0.999);
+    let r = intensity.clamp(c.x().sqrt());
+    let g = intensity.clamp(c.y().sqrt());
+    let b = intensity.clamp(c.z().sqrt());
+
+    let rbyte = (256.0 * r) as u8;
+    let gbyte = (256.0 * g) as u8;
+    let bbyte = (256.0 * b) as u8;
+
+    //println!("{} {} {}", rbyte, gbyte, bbyte);
 }
