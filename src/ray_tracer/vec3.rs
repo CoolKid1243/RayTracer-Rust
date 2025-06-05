@@ -1,4 +1,5 @@
 use rand::Rng;
+use std::ops::AddAssign;
 use std::ops::{Add, Sub, Mul, Div, Neg};
 
 #[derive(Clone, Copy, Debug)]
@@ -75,6 +76,14 @@ impl Add for Vec3 {
     type Output = Vec3;
     fn add(self, rhs: Vec3) -> Vec3 {
         Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+    }
+}
+
+impl AddAssign for Vec3 {
+    fn add_assign(&mut self, other: Vec3) {
+        self.0 += other.0;
+        self.1 += other.1;
+        self.2 += other.2;
     }
 }
 

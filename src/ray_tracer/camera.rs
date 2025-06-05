@@ -40,15 +40,17 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(image_width: u32, samples_per_pixel: u32, max_depth: u32) -> Self {
-        // World
+        // World setup
         let mut world = HittableList::new();
         world.add(Arc::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
         world.add(Arc::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
 
-        // Image
+        // Image and aspect ratio
         let aspect_ratio = 16.0 / 9.0;
         let mut image_height = (image_width as f64 / aspect_ratio) as u32;
-        if image_height < 1 { image_height = 1; }
+        if image_height < 1 {
+            image_height = 1;
+        }
 
         // Camera geometry
         let focal_length = 1.0;
@@ -107,7 +109,7 @@ impl Camera {
                         + self.pixel_delta_v * v;
 
                     let ray = Ray::new(self.camera_center, pixel_sample - self.camera_center);
-                    pixel_color = pixel_color + ray_color(&ray, &self.world, self.max_depth);
+                    pixel_color += ray_color(&ray, &self.world, self.max_depth);
                 }
 
                 let scaled = pixel_color * scale;
@@ -126,6 +128,7 @@ impl Camera {
             eprint!("\rScanlines remaining: {}", self.image_height - 1 - j);
             std::io::stdout().flush().unwrap();
         }
+
         buffer
     }
 }
