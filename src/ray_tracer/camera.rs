@@ -9,11 +9,18 @@ use crate::ray_tracer::sphere::Sphere;
 use crate::ray_tracer::hit_record::HitRecord;
 use crate::ray_tracer::interval::Interval;
 
-fn ray_color(r: &Ray, world: &HittableList) -> Color {
+fn ray_color(r: &Ray, world: &HittableList, depth: u32) -> Color {
+    if depth == 0 {
+        return Color::new(0.0, 0.0, 0.0);
+    }
+
     let mut rec = HitRecord::new();
     if world.hit(r, Interval::new(0.001, f64::INFINITY), &mut rec) {
-        return (rec.normal + Color::new(1.0, 1.0, 1.0)) * 0.5;
+        let direction = Vec3::random_on_hemisphere(rec.normal);
+        let new_ray = Ray::new(rec.p, direction);
+        return ray_color(&new_ray, world, depth - 1) * 0.5;
     }
+
     let unit_direction = Vec3::unit_vector(&r.direction());
     let a = 0.5 * (unit_direction.y() + 1.0);
     Color::new(1.0, 1.0, 1.0) * (1.0 - a) + Color::new(0.5, 0.7, 1.0) * a
@@ -23,6 +30,7 @@ pub struct Camera {
     image_width: u32,
     image_height: u32,
     samples_per_pixel: u32,
+    max_depth: u32,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
     pixel00_loc: Point3,
@@ -31,13 +39,13 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(image_width: u32, samples_per_pixel: u32) -> Self {
-        // World setup
+    pub fn new(image_width: u32, samples_per_pixel: u32, max_depth: u32) -> Self {
+        // World
         let mut world = HittableList::new();
         world.add(Arc::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
         world.add(Arc::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
 
-        // Image dimensions
+        // Image
         let aspect_ratio = 16.0 / 9.0;
         let mut image_height = (image_width as f64 / aspect_ratio) as u32;
         if image_height < 1 { image_height = 1; }
@@ -58,12 +66,14 @@ impl Camera {
             - Vec3::new(0.0, 0.0, focal_length)
             - viewport_u / 2.0
             - viewport_v / 2.0;
+
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
         Self {
             image_width,
             image_height,
             samples_per_pixel,
+            max_depth,
             pixel_delta_u,
             pixel_delta_v,
             pixel00_loc,
@@ -95,28 +105,27 @@ impl Camera {
                     let pixel_sample = self.pixel00_loc
                         + self.pixel_delta_u * u
                         + self.pixel_delta_v * v;
-                    let r = Ray::new(self.camera_center, pixel_sample - self.camera_center);
-                    pixel_color = pixel_color + ray_color(&r, &self.world);
+
+                    let ray = Ray::new(self.camera_center, pixel_sample - self.camera_center);
+                    pixel_color = pixel_color + ray_color(&ray, &self.world, self.max_depth);
                 }
 
                 let scaled = pixel_color * scale;
 
-                let r_u8 = (scaled.x().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
-                let g_u8 = (scaled.y().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
-                let b_u8 = (scaled.z().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
+                let r = (scaled.x().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
+                let g = (scaled.y().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
+                let b = (scaled.z().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
 
                 let idx = ((j * self.image_width + i) * 4) as usize;
-                buffer[idx] = r_u8;
-                buffer[idx + 1] = g_u8;
-                buffer[idx + 2] = b_u8;
+                buffer[idx] = r;
+                buffer[idx + 1] = g;
+                buffer[idx + 2] = b;
                 buffer[idx + 3] = 255;
             }
 
             eprint!("\rScanlines remaining: {}", self.image_height - 1 - j);
             std::io::stdout().flush().unwrap();
         }
-
-        //eprintln!("\nDone.");
         buffer
     }
 }
