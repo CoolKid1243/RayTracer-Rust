@@ -8,6 +8,7 @@ use crate::ray_tracer::hittable_list::HittableList;
 use crate::ray_tracer::sphere::Sphere;
 use crate::ray_tracer::hit_record::HitRecord;
 use crate::ray_tracer::interval::Interval;
+use crate::ray_tracer::color::write_color;
 
 fn ray_color(r: &Ray, world: &HittableList, depth: u32) -> Color {
     if depth == 0 {
@@ -18,7 +19,8 @@ fn ray_color(r: &Ray, world: &HittableList, depth: u32) -> Color {
     if world.hit(r, Interval::new(0.001, f64::INFINITY), &mut rec) {
         let direction = Vec3::random_on_hemisphere(rec.normal);
         let new_ray = Ray::new(rec.p, direction);
-        return ray_color(&new_ray, world, depth - 1) * 0.5;
+        let gama = 0.5;
+        return ray_color(&new_ray, world, depth - 1) * gama;
     }
 
     let unit_direction = Vec3::unit_vector(&r.direction());
@@ -114,6 +116,9 @@ impl Camera {
 
                 let scaled = pixel_color * scale;
 
+                // Write the image colors in a ppm format
+                //write_color(&scaled);
+
                 let r = (scaled.x().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
                 let g = (scaled.y().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
                 let b = (scaled.z().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
@@ -124,8 +129,15 @@ impl Camera {
                 buffer[idx + 2] = b;
                 buffer[idx + 3] = 255;
             }
+            
+            let scanlines_left = self.image_height - 1 - j;
+            let percent = (j as f64) / (self.image_height as f64) * 100.0;
+            if j > 0 {
+                eprint!("\x1B[2A");
+            }
 
-            eprint!("\rScanlines remaining: {}", self.image_height - 1 - j);
+            println!("Scanlines remaining: {}", scanlines_left);
+            println!("Percent done: {:>5.1}%", percent);
             std::io::stdout().flush().unwrap();
         }
 

@@ -1,11 +1,11 @@
 use crate::graphics_pipeline::application::State;
 use crate::ray_tracer::camera::Camera;
-use winit::dpi::LogicalSize;
 use winit::{
     event::*,
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
     window::WindowBuilder,
+    dpi::LogicalSize,
 };
 
 pub async fn run() {
@@ -16,7 +16,7 @@ pub async fn run() {
         .with_inner_size(LogicalSize::new(1280.0, 720.0))
         .build(&event_loop)
         .unwrap();
-    let raytracer = Camera::new(400, 5, 10);
+    let raytracer = Camera::new(650, 35, 10);
     let mut state = State::new(&window, &raytracer).await;
     let mut surface_configured = false;
 
