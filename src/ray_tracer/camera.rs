@@ -115,9 +115,6 @@ impl Camera {
 
                 let scaled = pixel_color * scale;
 
-                // Write the image colors in a ppm format
-                //write_color(&scaled);
-
                 let r = (scaled.x().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
                 let g = (scaled.y().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
                 let b = (scaled.z().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
