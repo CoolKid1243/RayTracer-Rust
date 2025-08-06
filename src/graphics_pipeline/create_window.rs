@@ -12,7 +12,7 @@ pub async fn run() {
     env_logger::init();
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
-        .with_title("Real-time Ray Tracer - Progressive Rendering + Denoising")
+        .with_title("Real-time Ray Tracer")
         .with_inner_size(LogicalSize::new(1280.0, 720.0))
         .build(&event_loop)
         .unwrap();
