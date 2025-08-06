@@ -18,9 +18,9 @@ impl<'a> State<'a> {
         let size = window.inner_size();
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
-            backends: wgpu::Backends::PRIMARY,
+                backends: wgpu::Backends::PRIMARY,
             #[cfg(target_arch = "wasm32")]
-            backends: wgpu::Backends::VULKAN,
+                backends: wgpu::Backends::VULKAN,
             ..Default::default()
         });
         let surface = { instance.create_surface(window) }.unwrap();
