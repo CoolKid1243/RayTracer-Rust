@@ -8,7 +8,6 @@ use crate::ray_tracer::hittable_list::HittableList;
 use crate::ray_tracer::sphere::Sphere;
 use crate::ray_tracer::hit_record::HitRecord;
 use crate::ray_tracer::interval::Interval;
-use crate::ray_tracer::color::write_color;
 
 fn ray_color(r: &Ray, world: &HittableList, depth: u32) -> Color {
     if depth == 0 {

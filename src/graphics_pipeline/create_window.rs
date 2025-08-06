@@ -1,4 +1,4 @@
-use crate::graphics_pipeline::application::State;
+use crate::app::application::State;
 use crate::ray_tracer::camera::Camera;
 use winit::{
     event::*,

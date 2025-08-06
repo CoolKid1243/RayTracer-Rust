@@ -39,16 +39,16 @@ impl Vec3 {
     }
 
     pub fn random() -> Vec3 {
-        let mut rng = rand::thread_rng();
-        Vec3(rng.gen(), rng.gen(), rng.gen())
+        let mut rng = rand::rng();
+        Vec3(rng.random(), rng.random(), rng.random())
     }
 
     pub fn random_range(min: f64, max: f64) -> Vec3 {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         Vec3(
-            rng.gen_range(min..max),
-            rng.gen_range(min..max),
-            rng.gen_range(min..max),
+            rng.random_range(min..max),
+            rng.random_range(min..max),
+            rng.random_range(min..max),
         )
     }
 
