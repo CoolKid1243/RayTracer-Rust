@@ -64,9 +64,9 @@ pub async fn run() {
                             state.update_image(&raytracer);
                             
                             // Print sample count
-                            if raytracer.get_sample_count() % 10 == 0 {
-                                println!("Samples: {}", raytracer.get_sample_count());
-                            }
+                            // if raytracer.get_sample_count() % 10 == 0 {
+                            //     println!("Samples: {}", raytracer.get_sample_count());
+                            // }
                             
                             match state.render() {
                                 Ok(_) => {}
