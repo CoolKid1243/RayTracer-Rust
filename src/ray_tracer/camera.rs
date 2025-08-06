@@ -8,6 +8,8 @@ use crate::ray_tracer::hittable_list::HittableList;
 use crate::ray_tracer::sphere::Sphere;
 use crate::ray_tracer::hit_record::HitRecord;
 use crate::ray_tracer::interval::Interval;
+use crate::ray_tracer::pixel_data::PixelData;
+use crate::ray_tracer::denoiser::Denoiser;
 
 struct FastRng {
     state: u64,
@@ -37,13 +39,25 @@ impl FastRng {
     }
 }
 
-fn ray_color_iterative(r: &Ray, world: &HittableList, depth: u32, rng: &mut FastRng) -> Color {
+fn ray_color_iterative_with_data(r: &Ray, world: &HittableList, depth: u32, rng: &mut FastRng) -> (Color, PixelData) {
     let mut current_ray = *r;
     let mut attenuation = Color::new(1.0, 1.0, 1.0);
+    let mut pixel_data = PixelData::new();
+    let mut first_hit = true;
     
     for _ in 0..depth {
         let mut rec = HitRecord::new();
         if world.hit(&current_ray, Interval::new(0.001, f64::INFINITY), &mut rec) {
+            
+            // Store G-buffer data from first hit only
+            if first_hit {
+                pixel_data.depth = rec.t as f32;
+                pixel_data.normal = rec.normal;
+                pixel_data.albedo = Color::new(0.7, 0.7, 0.7); // Default material color
+                first_hit = false;
+            }
+            
+            // Lambertian diffuse with optimized random direction
             let target = rec.p + rec.normal + Vec3::unit_vector(&rng.random_in_unit_sphere());
             current_ray = Ray::new(rec.p, target - rec.p);
             attenuation = attenuation * 0.5;
@@ -52,11 +66,16 @@ fn ray_color_iterative(r: &Ray, world: &HittableList, depth: u32, rng: &mut Fast
             let unit_direction = Vec3::unit_vector(&current_ray.direction());
             let t = 0.5 * (unit_direction.y() + 1.0);
             let background = Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
-            return attenuation * background;
+            let final_color = attenuation * background;
+            pixel_data.color = final_color;
+            return (final_color, pixel_data);
         }
     }
     
-    Color::new(0.0, 0.0, 0.0)
+    // Exceeded depth
+    let black = Color::new(0.0, 0.0, 0.0);
+    pixel_data.color = black;
+    (black, pixel_data)
 }
 
 pub struct Camera {
@@ -68,9 +87,11 @@ pub struct Camera {
     pixel00_loc: Point3,
     camera_center: Point3,
     world: Arc<HittableList>,
-    accumulation_buffer: Vec<Color>,
+    pixel_buffer: Vec<PixelData>,
     sample_count: AtomicU32,
     current_frame: u32,
+    denoiser: Denoiser,
+    enable_denoising: bool,
 }
 
 impl Camera {
@@ -117,9 +138,11 @@ impl Camera {
             pixel00_loc,
             camera_center,
             world: Arc::new(world),
-            accumulation_buffer: vec![Color::new(0.0, 0.0, 0.0); buffer_size],
+            pixel_buffer: vec![PixelData::new(); buffer_size],
             sample_count: AtomicU32::new(0),
             current_frame: 0,
+            denoiser: Denoiser::new(image_width, image_height),
+            enable_denoising: true,
         }
     }
 
@@ -132,17 +155,17 @@ impl Camera {
     }
 
     pub fn reset_accumulation(&mut self) {
-        self.accumulation_buffer.fill(Color::new(0.0, 0.0, 0.0));
+        self.pixel_buffer.fill(PixelData::new());
         self.sample_count.store(0, Ordering::Relaxed);
         self.current_frame = 0;
     }
 
     pub fn render_progressive(&mut self) {
-        let samples_this_frame = 1; // samples per frame
+        let samples_this_frame = 1; // Samples per frame
         self.current_frame += 1;
         
-        // Use parallel processing
-        let pixel_samples: Vec<Color> = (0..self.image_height * self.image_width)
+        // Use parallel processing with rayon
+        let pixel_results: Vec<(Color, PixelData)> = (0..self.image_height * self.image_width)
             .into_par_iter()
             .map(|pixel_idx| {
                 let j = pixel_idx / self.image_width;
@@ -152,6 +175,7 @@ impl Camera {
                 let mut rng = FastRng::new(seed);
                 
                 let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                let mut combined_data = PixelData::new();
                 
                 for _ in 0..samples_this_frame {
                     let u = i as f64 + rng.next();
@@ -162,16 +186,28 @@ impl Camera {
                         + self.pixel_delta_v * v;
 
                     let ray = Ray::new(self.camera_center, pixel_sample - self.camera_center);
-                    pixel_color += ray_color_iterative(&ray, &self.world, self.max_depth, &mut rng);
+                    let (sample_color, sample_data) = ray_color_iterative_with_data(&ray, &self.world, self.max_depth, &mut rng);
+                    
+                    pixel_color += sample_color;
+                    
+                    // Accumulate G-buffer data
+                    if samples_this_frame == 1 {
+                        combined_data = sample_data;
+                    }
                 }
                 
-                pixel_color
+                combined_data.color = pixel_color;
+                (pixel_color, combined_data)
             })
             .collect();
 
-        // Accumulate samples
-        for (i, sample) in pixel_samples.iter().enumerate() {
-            self.accumulation_buffer[i] += *sample;
+        // Accumulate samples in pixel buffer
+        for (i, (sample_color, sample_data)) in pixel_results.iter().enumerate() {
+            self.pixel_buffer[i].color += *sample_color;
+            self.pixel_buffer[i].depth = sample_data.depth;
+            self.pixel_buffer[i].normal = sample_data.normal;
+            self.pixel_buffer[i].albedo = sample_data.albedo;
+            self.pixel_buffer[i].sample_count += 1;
         }
         
         self.sample_count.fetch_add(samples_this_frame, Ordering::Relaxed);
@@ -187,13 +223,25 @@ impl Camera {
         
         let scale = 1.0 / sample_count;
         
-        for (i, accumulated_color) in self.accumulation_buffer.iter().enumerate() {
-            let scaled = *accumulated_color * scale;
+        // Get colors 
+        let colors = if self.enable_denoising && sample_count >= 4.0 {
+            let mut scaled_pixel_data = self.pixel_buffer.clone();
+            for pixel in &mut scaled_pixel_data {
+                pixel.color = pixel.color * scale; 
+            }
             
+            // Apply denoising to the scaled data
+            self.denoiser.denoise(&scaled_pixel_data)
+        } else {
+            // Use raw accumulated colors
+            self.pixel_buffer.iter().map(|p| p.color * scale).collect()
+        };
+        
+        for (i, color) in colors.iter().enumerate() {
             // Gamma correction and clamping
-            let r = (scaled.x().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
-            let g = (scaled.y().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
-            let b = (scaled.z().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
+            let r = (color.x().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
+            let g = (color.y().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
+            let b = (color.z().sqrt().clamp(0.0, 0.999) * 256.0) as u8;
 
             let idx = i * 4;
             buffer[idx] = r;
@@ -207,5 +255,14 @@ impl Camera {
     
     pub fn get_sample_count(&self) -> u32 {
         self.sample_count.load(Ordering::Relaxed)
+    }
+    
+    pub fn toggle_denoising(&mut self) {
+        self.enable_denoising = !self.enable_denoising;
+        println!("Denoising: {}", if self.enable_denoising { "ON" } else { "OFF" });
+    }
+    
+    pub fn get_pixel_data(&self) -> &[PixelData] {
+        &self.pixel_buffer
     }
 }

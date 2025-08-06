@@ -12,7 +12,7 @@ pub async fn run() {
     env_logger::init();
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
-        .with_title("Ray Tracer")
+        .with_title("Real-time Ray Tracer - Progressive Rendering + Denoising")
         .with_inner_size(LogicalSize::new(1280.0, 720.0))
         .build(&event_loop)
         .unwrap();
@@ -28,7 +28,8 @@ pub async fn run() {
             Event::WindowEvent { ref event, window_id } if window_id == state.window().id() => {
                 if !state.input(event) {
                     match event {
-                        WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
+                        WindowEvent::CloseRequested
+                        | WindowEvent::KeyboardInput {
                             event:
                                 KeyEvent {
                                     state: ElementState::Pressed,
@@ -52,6 +53,17 @@ pub async fn run() {
                             // Reset accumulation on R key press
                             raytracer.reset_accumulation();
                         }
+                        WindowEvent::KeyboardInput {
+                            event: KeyEvent {
+                                state: ElementState::Pressed,
+                                physical_key: PhysicalKey::Code(KeyCode::KeyD),
+                                ..
+                            },
+                            ..
+                        } => {
+                            // Toggle denoising on D key press
+                            raytracer.toggle_denoising();
+                        }
                         WindowEvent::RedrawRequested => {
                             if !surface_configured {
                                 return;
@@ -63,7 +75,7 @@ pub async fn run() {
                             state.update();
                             state.update_image(&raytracer);
                             
-                            // Print sample count
+                            // Print sample count for debugging
                             // if raytracer.get_sample_count() % 10 == 0 {
                             //     println!("Samples: {}", raytracer.get_sample_count());
                             // }

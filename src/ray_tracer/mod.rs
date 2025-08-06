@@ -6,3 +6,5 @@ pub mod hittable;
 pub mod sphere;
 pub mod interval;
 pub mod camera;
+pub mod pixel_data;
+pub mod denoiser;
