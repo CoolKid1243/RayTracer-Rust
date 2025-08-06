@@ -257,12 +257,15 @@ impl Camera {
         self.sample_count.load(Ordering::Relaxed)
     }
     
-    pub fn toggle_denoising(&mut self) {
-        self.enable_denoising = !self.enable_denoising;
-        println!("Denoising: {}", if self.enable_denoising { "ON" } else { "OFF" });
-    }
-    
     pub fn get_pixel_data(&self) -> &[PixelData] {
         &self.pixel_buffer
+    }
+
+    pub fn is_denoising_enabled(&self) -> bool {
+        self.enable_denoising
+    }
+
+    pub fn toggle_denoising(&mut self) {
+        self.enable_denoising = !self.enable_denoising;
     }
 }
