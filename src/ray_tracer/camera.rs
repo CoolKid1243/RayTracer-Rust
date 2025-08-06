@@ -142,7 +142,7 @@ impl Camera {
             sample_count: AtomicU32::new(0),
             current_frame: 0,
             denoiser: Denoiser::new(image_width, image_height),
-            enable_denoising: true,
+            enable_denoising: false,
         }
     }
 
