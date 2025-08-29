@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use rayon::prelude::*;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ray_tracer::vec3::{Vec3, Point3, Color};
 use crate::ray_tracer::ray::Ray;
@@ -17,12 +18,16 @@ struct FastRng {
 
 impl FastRng {
     fn new(seed: u64) -> Self {
-        Self { state: seed }
+        let mut state = seed;
+        state = state.wrapping_mul(1103515245).wrapping_add(12345);
+        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        Self { state }
     }
     
     fn next(&mut self) -> f64 {
-        self.state = self.state.wrapping_mul(6364136223846793005).wrapping_add(1);
-        ((self.state >> 32) as u32 as f64) / (u32::MAX as f64)
+        self.state = self.state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        let result = (self.state >> 32) as u32;
+        (result as f64) * (1.0 / 4294967296.0)
     }
     
     fn random_in_unit_sphere(&mut self) -> Vec3 {
@@ -89,6 +94,9 @@ pub struct Camera {
     denoiser: Denoiser,
     enable_denoising: bool,
     
+    // Add a global random seed that changes when camera moves
+    global_seed: u64,
+    
     // Camera positioning
     pub position: Point3,
     pub yaw: f64,   // Rotation around Y axis (left/right)
@@ -121,6 +129,12 @@ impl Camera {
 
         let buffer_size = (image_width * image_height) as usize;
         
+        // Initialize with a time-based seed
+        let global_seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        
         let mut camera = Self {
             image_width,
             image_height,
@@ -131,6 +145,7 @@ impl Camera {
             current_frame: 0,
             denoiser: Denoiser::new(image_width, image_height),
             enable_denoising: false,
+            global_seed,
             
             // Initialize camera position and orientation
             position: Point3::new(0.0, 0.0, 0.0),
@@ -158,33 +173,44 @@ impl Camera {
         self.image_height
     }
     
+    fn update_global_seed(&mut self) {
+        // Generate a new seed when camera moves to break patterns
+        self.global_seed = self.global_seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+    }
+    
     pub fn move_forward(&mut self, delta: f64) {
         self.position += self.front * delta;
+        self.update_global_seed();
         self.reset_accumulation();
     }
     
     pub fn move_backward(&mut self, delta: f64) {
         self.position -= self.front * delta;
+        self.update_global_seed();
         self.reset_accumulation();
     }
     
     pub fn move_left(&mut self, delta: f64) {
         self.position -= self.right * delta;
+        self.update_global_seed();
         self.reset_accumulation();
     }
     
     pub fn move_right(&mut self, delta: f64) {
         self.position += self.right * delta;
+        self.update_global_seed();
         self.reset_accumulation();
     }
     
     pub fn move_up(&mut self, delta: f64) {
         self.position += self.world_up * delta;
+        self.update_global_seed();
         self.reset_accumulation();
     }
     
     pub fn move_down(&mut self, delta: f64) {
         self.position -= self.world_up * delta;
+        self.update_global_seed();
         self.reset_accumulation();
     }
     
@@ -198,6 +224,7 @@ impl Camera {
         self.pitch = self.pitch.clamp(-89.0, 89.0);
         
         self.update_camera_vectors();
+        self.update_global_seed();
         self.reset_accumulation();
     }
     
@@ -249,7 +276,13 @@ impl Camera {
                 let j = pixel_idx / self.image_width;
                 let i = pixel_idx % self.image_width;
                 
-                let seed = (self.current_frame as u64) * 1000000 + pixel_idx as u64;
+                let seed = self.global_seed
+                    .wrapping_mul(1103515245)
+                    .wrapping_add(self.current_frame as u64)
+                    .wrapping_mul(2654435761)
+                    .wrapping_add(pixel_idx as u64)
+                    .wrapping_mul(6364136223846793005); // Final mixing
+                
                 let mut rng = FastRng::new(seed);
                 
                 let mut pixel_color = Color::new(0.0, 0.0, 0.0);
