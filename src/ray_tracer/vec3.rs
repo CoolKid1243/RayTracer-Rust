@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub, Mul, Div, Neg, AddAssign};
+use std::ops::{Add, Sub, Mul, Div, Neg, AddAssign, SubAssign};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vec3(pub f64, pub f64, pub f64);
@@ -69,6 +69,15 @@ impl Sub for Vec3 {
     #[inline]
     fn sub(self, rhs: Vec3) -> Vec3 {
         Vec3(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
+    }
+}
+
+impl SubAssign for Vec3 {
+    #[inline]
+    fn sub_assign(&mut self, other: Vec3) {
+        self.0 -= other.0;
+        self.1 -= other.1;
+        self.2 -= other.2;
     }
 }
 

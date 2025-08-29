@@ -1,5 +1,7 @@
 use winit::window::Window;
 use crate::ray_tracer::camera::Camera;
+use winit::keyboard::KeyCode;
+use std::collections::HashSet;
 
 pub struct State<'a> {
     pub surface: wgpu::Surface<'a>,
@@ -11,6 +13,7 @@ pub struct State<'a> {
     pub render_pipeline: wgpu::RenderPipeline,
     pub ray_texture: wgpu::Texture,
     pub bind_group: wgpu::BindGroup,
+    pub pressed_keys: HashSet<KeyCode>,
 }
 
 impl<'a> State<'a> {
@@ -178,6 +181,7 @@ impl<'a> State<'a> {
             render_pipeline,
             ray_texture,
             bind_group,
+            pressed_keys: HashSet::new(),
         }
     }
 
@@ -194,8 +198,51 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn input(&mut self, _event: &winit::event::WindowEvent) -> bool {
-        false
+    pub fn input(&mut self, event: &winit::event::WindowEvent) -> bool {
+        match event {
+            winit::event::WindowEvent::KeyboardInput { 
+                event: winit::event::KeyEvent {
+                    physical_key: winit::keyboard::PhysicalKey::Code(keycode),
+                    state,
+                    ..
+                }, 
+                .. 
+            } => {
+                match state {
+                    winit::event::ElementState::Pressed => {
+                        self.pressed_keys.insert(*keycode);
+                    }
+                    winit::event::ElementState::Released => {
+                        self.pressed_keys.remove(keycode);
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+    
+    pub fn process_continuous_input(&self, camera: &mut Camera, dt: f64) {
+        let move_speed = 5.0 * dt; // Adjust speed as needed
+        
+        if self.pressed_keys.contains(&KeyCode::KeyW) {
+            camera.move_forward(move_speed);
+        }
+        if self.pressed_keys.contains(&KeyCode::KeyS) {
+            camera.move_backward(move_speed);
+        }
+        if self.pressed_keys.contains(&KeyCode::KeyA) {
+            camera.move_left(move_speed);
+        }
+        if self.pressed_keys.contains(&KeyCode::KeyD) {
+            camera.move_right(move_speed);
+        }
+        if self.pressed_keys.contains(&KeyCode::KeyE) {
+            camera.move_up(move_speed);
+        }
+        if self.pressed_keys.contains(&KeyCode::KeyQ) {
+            camera.move_down(move_speed);
+        }
     }
 
     pub fn run(&mut self) {

@@ -82,16 +82,27 @@ pub struct Camera {
     image_width: u32,
     image_height: u32,
     max_depth: u32,
-    pixel_delta_u: Vec3,
-    pixel_delta_v: Vec3,
-    pixel00_loc: Point3,
-    camera_center: Point3,
     world: Arc<HittableList>,
     pixel_buffer: Vec<PixelData>,
     sample_count: AtomicU32,
     current_frame: u32,
     denoiser: Denoiser,
     enable_denoising: bool,
+    
+    // Camera positioning
+    pub position: Point3,
+    pub yaw: f64,   // Rotation around Y axis (left/right)
+    pub pitch: f64, // Rotation around X axis (up/down)
+    
+    // Camera vectors
+    front: Vec3,
+    right: Vec3,
+    up: Vec3,
+    world_up: Vec3,
+    
+    // Camera settings
+    fov: f64,
+    aspect_ratio: f64,
 }
 
 impl Camera {
@@ -108,42 +119,35 @@ impl Camera {
             image_height = 1;
         }
 
-        // Camera geometry
-        let focal_length = 1.0;
-        let viewport_height = 2.0;
-        let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
-
-        let camera_center = Point3::new(0.0, 0.0, 0.0);
-        let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
-        let viewport_v = Vec3::new(0.0, -viewport_height, 0.0);
-
-        let pixel_delta_u = viewport_u / image_width as f64;
-        let pixel_delta_v = viewport_v / image_height as f64;
-
-        let viewport_upper_left = camera_center
-            - Vec3::new(0.0, 0.0, focal_length)
-            - viewport_u / 2.0
-            - viewport_v / 2.0;
-
-        let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
-
         let buffer_size = (image_width * image_height) as usize;
         
-        Self {
+        let mut camera = Self {
             image_width,
             image_height,
             max_depth,
-            pixel_delta_u,
-            pixel_delta_v,
-            pixel00_loc,
-            camera_center,
             world: Arc::new(world),
             pixel_buffer: vec![PixelData::new(); buffer_size],
             sample_count: AtomicU32::new(0),
             current_frame: 0,
             denoiser: Denoiser::new(image_width, image_height),
             enable_denoising: false,
-        }
+            
+            // Initialize camera position and orientation
+            position: Point3::new(0.0, 0.0, 0.0),
+            yaw: -90.0, // Face negative Z direction initially
+            pitch: 0.0,
+            
+            front: Vec3::new(0.0, 0.0, -1.0),
+            right: Vec3::new(1.0, 0.0, 0.0),
+            up: Vec3::new(0.0, 1.0, 0.0),
+            world_up: Vec3::new(0.0, 1.0, 0.0),
+            
+            fov: 45.0,
+            aspect_ratio,
+        };
+        
+        camera.update_camera_vectors();
+        camera
     }
 
     pub fn image_width(&self) -> u32 {
@@ -152,6 +156,66 @@ impl Camera {
 
     pub fn image_height(&self) -> u32 {
         self.image_height
+    }
+    
+    pub fn move_forward(&mut self, delta: f64) {
+        self.position += self.front * delta;
+        self.reset_accumulation();
+    }
+    
+    pub fn move_backward(&mut self, delta: f64) {
+        self.position -= self.front * delta;
+        self.reset_accumulation();
+    }
+    
+    pub fn move_left(&mut self, delta: f64) {
+        self.position -= self.right * delta;
+        self.reset_accumulation();
+    }
+    
+    pub fn move_right(&mut self, delta: f64) {
+        self.position += self.right * delta;
+        self.reset_accumulation();
+    }
+    
+    pub fn move_up(&mut self, delta: f64) {
+        self.position += self.world_up * delta;
+        self.reset_accumulation();
+    }
+    
+    pub fn move_down(&mut self, delta: f64) {
+        self.position -= self.world_up * delta;
+        self.reset_accumulation();
+    }
+    
+    pub fn process_mouse_movement(&mut self, xoffset: f64, yoffset: f64) {
+        let sensitivity = 0.1;
+        
+        self.yaw += xoffset * sensitivity;
+        self.pitch += yoffset * sensitivity;
+        
+        // Constrain pitch to avoid flipping
+        self.pitch = self.pitch.clamp(-89.0, 89.0);
+        
+        self.update_camera_vectors();
+        self.reset_accumulation();
+    }
+    
+    fn update_camera_vectors(&mut self) {
+        let yaw_rad = self.yaw.to_radians();
+        let pitch_rad = self.pitch.to_radians();
+        
+        // Calculate front vector
+        let front = Vec3::new(
+            yaw_rad.cos() * pitch_rad.cos(),
+            pitch_rad.sin(),
+            yaw_rad.sin() * pitch_rad.cos(),
+        );
+        self.front = Vec3::unit_vector(&front);
+        
+        // Calculate right and up vectors
+        self.right = Vec3::unit_vector(&Vec3::cross(self.front, self.world_up));
+        self.up = Vec3::unit_vector(&Vec3::cross(self.right, self.front));
     }
 
     pub fn reset_accumulation(&mut self) {
@@ -163,6 +227,20 @@ impl Camera {
     pub fn render_progressive(&mut self) {
         let samples_this_frame = 1; // Samples per frame
         self.current_frame += 1;
+        
+        // Calculate camera geometry for current frame
+        let theta = self.fov.to_radians();
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h;
+        let viewport_width = self.aspect_ratio * viewport_height;
+        
+        let w = Vec3::unit_vector(&(self.position - (self.position + self.front)));
+        let u = Vec3::unit_vector(&Vec3::cross(self.world_up, w));
+        let v = Vec3::cross(w, u);
+        
+        let horizontal = u * viewport_width;
+        let vertical = v * viewport_height;
+        let lower_left_corner = self.position - horizontal / 2.0 - vertical / 2.0 - w;
         
         // Use parallel processing with rayon
         let pixel_results: Vec<(Color, PixelData)> = (0..self.image_height * self.image_width)
@@ -178,14 +256,15 @@ impl Camera {
                 let mut combined_data = PixelData::new();
                 
                 for _ in 0..samples_this_frame {
-                    let u = i as f64 + rng.next();
-                    let v = j as f64 + rng.next();
+                    let u_offset = (i as f64 + rng.next()) / self.image_width as f64;
+                    let v_offset = ((self.image_height - 1 - j) as f64 + rng.next()) / self.image_height as f64;
 
-                    let pixel_sample = self.pixel00_loc
-                        + self.pixel_delta_u * u
-                        + self.pixel_delta_v * v;
+                    let ray_direction = lower_left_corner 
+                        + horizontal * u_offset 
+                        + vertical * v_offset 
+                        - self.position;
 
-                    let ray = Ray::new(self.camera_center, pixel_sample - self.camera_center);
+                    let ray = Ray::new(self.position, ray_direction);
                     let (sample_color, sample_data) = ray_color_iterative_with_data(&ray, &self.world, self.max_depth, &mut rng);
                     
                     pixel_color += sample_color;
