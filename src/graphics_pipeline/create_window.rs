@@ -70,12 +70,12 @@ pub async fn run() {
                         WindowEvent::KeyboardInput {
                             event: KeyEvent {
                                 state: ElementState::Pressed,
-                                physical_key: PhysicalKey::Code(KeyCode::KeyD),
+                                physical_key: PhysicalKey::Code(KeyCode::KeyT),
                                 ..
                             },
                             ..
                         } => {
-                            // Toggle denoising on D key press
+                            // Toggle denoising on T key press
                             raytracer.toggle_denoising();
                         }
                         WindowEvent::RedrawRequested => {
